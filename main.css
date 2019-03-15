@@ -16,9 +16,5 @@ plot-view {
   width: 100%;
   height: auto;
   display: block;
-}
-
-plot-view canvas {
-  display: block;
-  border: 1px solid black;
+  border: none;
 }
