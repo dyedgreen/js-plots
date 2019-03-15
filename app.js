@@ -7,8 +7,11 @@ class Plot extends HTMLElement {
     super();
     this.cnv = document.createElement("canvas");
     this.appendChild(this.cnv);
-    window.onresize = Plot.shareEvent(Plot.debounce(() => this.resize(), 50), window.onresize);
+    window.onresize = Plot.shareEvent(() => window.requestAnimationFrame(() => this.resize()), window.onresize);
     window.requestAnimationFrame(() => this.resize());
+    this.cnv.onmousemove = (e) => window.requestAnimationFrame(() => this.onmousemove(e));
+    this.cnv.onmouseenter = () => this.onhover(true);
+    this.cnv.onmouseleave = () => this.onhover(false);
     // Canvas and style
     this.ctx = this.cnv.getContext("2d", {alpha: false});
     this.aspectRatio = 0.8; // Canvas aspect ratio
@@ -22,14 +25,7 @@ class Plot extends HTMLElement {
     this.xTicks = 6;
     this.fontSize = 12;
     this.fontHeight = 20;
-    // Render state
-    this.hidden = {};
-    // Caches
-    this.cacheFull = null;
-    this.cacheFullW = 0;
-    this.cacheFullH = 0;
-    // Animation state
-    // TODO
+    this.axis = true; // Display axis and hover info
     // Default css
     this.style.display = "block";
     this.style.overflow = "hidden";
@@ -48,6 +44,43 @@ class Plot extends HTMLElement {
         this.colors.push(data.colors[id]);
       }
     });
+    // Render state
+    this.hiddenPlots = {};
+    this.from = 0;
+    this.to = this.x.length - 1;
+    this.hovered = false;
+    // Caches
+    this.cacheFull = null;
+    this.cacheFullW = 0;
+    this.cacheFullH = 0;
+    this.cacheFullFrom = this.from;
+    this.cacheFullTo = this.to;
+  }
+
+  togglePlot(index, animate) {
+    this.hiddenPlots[this.names[index]] = !this.hiddenPlots[this.names[index]];
+    if (animate) {
+      this.animate();
+    } else {
+      this.invalidateCache();
+      this.show();
+    }
+  }
+
+  setFromTo(xFrom, xTo, animate) {
+    // Select from and to
+    for (this.from = 0; this.from < this.x.length-1; this.from ++) {
+      if (this.x[this.from+1] > xFrom) break;
+    }
+    for (this.to = this.x.length-1; this.to > 0; this.to --) {
+      if (this.x[this.to-1] < xTo) break;
+    }
+    if (animate) {
+      this.animate();
+    } else {
+      this.invalidateCache();
+      this.show();
+    }
   }
 
   resize() {
@@ -62,10 +95,56 @@ class Plot extends HTMLElement {
     this.show();
   }
 
+  /**
+  * show()
+  *
+  * Updates the render
+  * and does appropriate
+  * caching.
+  */
   show() {
-    const a = 27, b = 60;
-    this.render(a, b, this.x[a], this.x[b], true);
-    this.renderHighlight(45);
+    if (!this.restoreCache()) {
+      this.render(this.from, this.to, this.axis);
+      this.setCache();
+    }
+    // Render highlight if hovered
+    if (this.hovered && this.axis) {
+      this.renderHighlight(this.hoverIndex);
+    }
+  }
+
+  /**
+  * animate()
+  *
+  * Like show, but with an
+  * animation.
+  */
+  animate(step) {
+    step = step || 0.1;
+    let progress = 0;
+    let closure = () => {
+      if (progress < 1) {
+        this.render(this.from, this.to, this.axis, progress);
+        progress += 0.1;
+        window.requestAnimationFrame(closure);
+      } else {
+        this.invalidateCache();
+        this.show();
+      }
+    };
+    window.requestAnimationFrame(closure);
+  }
+
+  onmousemove(event) {
+    // Determine highlight point
+    this.hoverIndex = (event.clientX - this.cnv.getBoundingClientRect().left) / this.cnv.offsetWidth;
+    this.hoverIndex = Math.floor(this.hoverIndex * (this.to-this.from) + this.from);
+    this.show();
+  }
+
+  onhover(hovered) {
+    this.hovered = !!hovered;
+    this.show();
   }
 
   /**
@@ -76,17 +155,29 @@ class Plot extends HTMLElement {
   * considered a low-level
   * operation.
   */
-  render(from, to, xMin, xMax, axis) {
+  render(from, to, axis, animBounds) {
     // Determine layout
     let yMin = axis ? 0 : +Infinity;
     let yMax = axis ? 0 : -Infinity;
     for (let i = 0; i < this.y.length; i ++) {
-      if (this.hidden[this.names[i]]) continue;
+      if (this.hiddenPlots[this.names[i]]) continue;
       for (let j = from; j <= to; j ++) {
         const tmp = this.y[i][j];
         yMin = yMin > tmp ? tmp : yMin;
         yMax = yMax < tmp ? tmp : yMax;
       }
+    }
+    let xMin = this.x[from];
+    let xMax = this.x[to];
+
+    // Animation easing of bounds
+    if (typeof animBounds === "number") {
+      from = Math.min(from, this.__cacheFrom__);
+      to = Math.max(to, this.__cacheTo__);
+      yMin = (yMin - this.__cacheYMin__) * animBounds + this.__cacheYMin__;
+      yMax = (yMax - this.__cacheYMax__) * animBounds + this.__cacheYMax__;
+      xMin = (xMin - this.__cacheXMin__) * animBounds + this.__cacheXMin__;
+      xMax = (xMax - this.__cacheXMax__) * animBounds + this.__cacheXMax__;
     }
 
     // Cache these for highlight
@@ -149,7 +240,7 @@ class Plot extends HTMLElement {
     this.ctx.lineJoin = "round";
 
     for (let i = 0; i < this.y.length; i ++) {
-      if (this.hidden[this.names[i]]) continue;
+      if (this.hiddenPlots[this.names[i]]) continue;
       this.ctx.strokeStyle = this.colors[i];
       this.ctx.beginPath();
       this.ctx.moveTo(0, (yMax-this.y[i][from])*yScale + offset);
@@ -206,7 +297,7 @@ class Plot extends HTMLElement {
     this.ctx.lineWidth = this.lineWidth * Plot.pixelRatio;
 
     for (let j = 0; j < this.y.length; j ++) {
-      if (this.hidden[this.names[j]]) continue;
+      if (this.hiddenPlots[this.names[j]]) continue;
       this.ctx.strokeStyle = this.colors[j];
       this.ctx.beginPath();
       this.ctx.ellipse(xPos, (yMax-this.y[j][i])*yScale + offset, radius, radius, 0, 0, 2*Math.PI);
@@ -216,49 +307,97 @@ class Plot extends HTMLElement {
     }
 
     // Measure box
-    const fontTitle = `${this.fontSize * Plot.pixelRatio * 1.5}px 'Roboto', sans-serif`;
-    const fontData = `${this.fontSize * Plot.pixelRatio * 2}px 'Roboto', sans-serif`;
+    const fontTitle = `${this.fontSize * Plot.pixelRatio * 1.2}px 'Roboto', sans-serif`;
+    const fontData = `${this.fontSize * Plot.pixelRatio * 1.5}px 'Roboto', sans-serif`;
     const fontName = `${this.fontSize * Plot.pixelRatio}px 'Roboto', sans-serif`;
+    const padding = 0.4 * this.fontHeight * Plot.pixelRatio;
 
     const title = `${Plot.weekDay(this.x[i])}, ${Plot.monthDay(this.x[i])}`;
     this.ctx.font = fontTitle;
     let m = this.ctx.measureText(title);
-    let width = m.width;
-    let height = m.height;
-    let heights = [m.height];
+    let width = padding;
 
     for (let j = 0; j < this.y.length; j ++) {
-      if (this.hidden[this.names[j]]) continue;
+      if (this.hiddenPlots[this.names[j]]) continue;
       this.ctx.font = fontData;
-      m = this.ctx.measureText("".concat(this.y[j][i]));
-      width = Math.max(width, m.width);
-      height += m.height;
-      heights.push(m.height);
+      const w = this.ctx.measureText("".concat(this.y[j][i])).width;
       this.ctx.font = fontName;
-      m = this.ctx.measureText(this.names[j]);
-      width = Math.max(width, m.width);
-      height += m.height;
-      heights.push(m.height);
+      width += Math.max(w, this.ctx.measureText(this.names[j]).width);
+      width += padding;
+    }
+    width = Math.max(width, m.width+2*padding);
+
+    let xBox = xPos - offset;
+    const yBox = offset;
+    const lineHeight = this.fontHeight * Plot.pixelRatio;
+    const hBox = lineHeight * 3.6;
+
+    if (xBox + width > this.cnv.width - offset) {
+      xBox = this.cnv.width - offset - width;
+    } else if (xBox < offset) {
+      xBox = offset;
     }
 
     // Render box
+    const borderRadius = 3*Plot.pixelRatio;
+    this.ctx.fillStyle = this.backgroundColor;
+    this.ctx.shadowBlur = 4;
+    this.ctx.shadowColor = "rgba(0,0,0,0.2)";
+
     this.ctx.beginPath();
+    this.ctx.moveTo(xBox + borderRadius, yBox);
+    this.ctx.lineTo(xBox + width - borderRadius, yBox);
+    this.ctx.quadraticCurveTo(xBox + width, yBox, xBox + width, yBox + borderRadius);
+    this.ctx.lineTo(xBox + width, yBox + hBox - borderRadius);
+    this.ctx.quadraticCurveTo(xBox + width, yBox + hBox, xBox + width - borderRadius, yBox + hBox);
+    this.ctx.lineTo(xBox + borderRadius, yBox + hBox);
+    this.ctx.quadraticCurveTo(xBox, yBox + hBox, xBox, yBox + hBox - borderRadius);
+    this.ctx.lineTo(xBox, yBox + borderRadius);
+    this.ctx.quadraticCurveTo(xBox, yBox, xBox + borderRadius, yBox);
+
+    this.ctx.fill();
+    this.ctx.shadowColor = "rgba(0,0,0,0)";
 
     // Render text
+    this.ctx.fillStyle = this.textColor;
+    this.ctx.font = fontTitle;
+    this.ctx.fillText(title, xBox + padding, yBox + lineHeight);
+
+    for (let j = 0, x = xBox; j < this.y.length; j ++) {
+      if (this.hiddenPlots[this.names[j]]) continue;
+      this.ctx.fillStyle = this.colors[j];
+      this.ctx.font = fontData;
+      const text = `${this.y[j][i]}`;
+      const w = this.ctx.measureText(`${this.y[j][i]}`).width;
+      this.ctx.fillText(text, x + padding, yBox + lineHeight*2.6);
+      this.ctx.font = fontName;
+      this.ctx.fillText(this.names[j], x + padding, yBox + lineHeight*3.2);
+      x += padding + Math.max(this.ctx.measureText(this.names[j]).width, w);
+    }
   }
 
   setCache() {
     this.cacheFull = this.ctx.getImageData(0, 0, this.cnv.width, this.cnv.height);
     this.cacheFullW = this.cnv.width;
     this.cacheFullH = this.cnv.height;
+    this.cacheFullFrom = this.from;
+    this.cacheFullTo = this.to;
   }
 
   restoreCache() {
-    if (this.cacheFull && this.cacheFullW === this.cnv.width && this.cacheFullH === this.cnv.height) {
+    if (
+      this.cacheFull &&
+      this.cacheFullW === this.cnv.width && this.cacheFullH === this.cnv.height &&
+      this.cacheFullFrom === this.from && this.cacheFullTo === this.to
+    ) {
       this.ctx.putImageData(this.cacheFull, 0, 0);
       return true;
     }
     return false;
+  }
+
+  invalidateCache() {
+    this.cacheFull = null;
   }
 
   static weekDay(unix) {
@@ -276,9 +415,9 @@ class Plot extends HTMLElement {
   static debounce(fn, interval) {
     interval = interval || 10;
     let timeout = undefined;
-    return () => {
+    return (...args) => {
       clearTimeout(timeout);
-      timeout = setTimeout(fn, interval);
+      timeout = setTimeout(() => fn(...args), interval);
     };
   }
 
