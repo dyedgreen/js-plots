@@ -1,0 +1,24 @@
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.content {
+  width: 100%;
+  max-width: 500px;
+  height: auto;
+  padding: 10px;
+  margin: 0 auto;
+}
+
+plot-view {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+plot-view canvas {
+  display: block;
+  border: 1px solid black;
+}
