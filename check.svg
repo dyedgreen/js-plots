@@ -1,9 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg width="24px" height="24px" viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-    <!-- Generator: Sketch 43.2 (39069) - http://www.bohemiancoding.com/sketch -->
-    <title>Slice</title>
-    <desc>Created with Sketch.</desc>
-    <defs></defs>
     <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
         <path d="M18.4978903,7.38234094 L18.6160338,7.5004844 C19.1279887,8.01243939 19.1279887,8.83944361 18.6160338,9.35139861 L11.2911392,16.6894202 C10.7791842,17.2013752 9.95218003,17.2013752 9.44022504,16.6894202 L5.38396624,12.6331614 C4.87201125,12.1212064 4.87201125,11.2942022 5.38396624,10.7822472 L5.5021097,10.6641037 C6.0140647,10.1521487 6.84106892,10.1521487 7.35302391,10.6641037 L10.3722457,13.6833255 L16.6469761,7.39546799 C17.145804,6.87038595 17.9859353,6.87038595 18.4978903,7.38234094 L18.4978903,7.38234094 Z" id="Path" fill="#FFFFFF"></path>
     </g>

@@ -594,8 +594,6 @@ class PlotApp extends HTMLElement {
 
   constructor() {
     super();
-    // Loading state (initial)
-    // TODO
     // Events
     this.onready = () => {};
     // Load data
@@ -642,18 +640,8 @@ class PlotApp extends HTMLElement {
   }
 
   static loadJson(path, callback) {
-    // let req = new XMLHttpRequest();
-    // req.loadend = data => {
-    //   data = JSON.parse(data);
-    //   callback(data);
-    // };
-    // req.error = () => {
-    //   throw "Could not load plot data";
-    // };
-    // req.open("GET", path);
-    // req.send();
-    // Load using js, since cross-origin does not work
-    // nicely with local files
+    // Load directly using js file, since cross-origin does
+    // not work nicely with local files
     callback(chart_data);
   }
 
