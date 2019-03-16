@@ -611,9 +611,12 @@ class PlotApp extends HTMLElement {
       this.hiddenCount = 0;
       this.heroPlot.names.forEach((name, i) => {
         let button = document.createElement("a");
-        button.innerHTML = name;
-        button.setAttribute("data-color", this.heroPlot.colors[i]);
+        let icon = document.createElement("span");
+        icon.classList.add("icon");
+        icon.style.backgroundColor = this.heroPlot.colors[i];
+        button.appendChild(icon);
         button.classList.add("checked");
+        button.innerHTML = button.innerHTML + name;
         button.onclick = () => {
           if (button.classList.contains("checked") && this.hiddenCount > this.heroPlot.y.length - 2) {
             // At least one plot has to be visible
