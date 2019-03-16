@@ -1,9 +1,12 @@
+/* Resets */
 * {
   padding: 0;
   margin: 0;
   box-sizing: border-box;
+  font-family: "Roboto", sans-serif;
 }
 
+/* General layout */
 .content {
   width: 100%;
   max-width: 500px;
@@ -12,9 +15,36 @@
   margin: 0 auto;
 }
 
-plot-view {
+/* Plots */
+plot-app {
   width: 100%;
   height: auto;
   display: block;
-  border: none;
+}
+plot-app plot-base {
+  margin: 0 0 15px 0;
+}
+plot-app plot-overview {
+  margin: 0 0 15px 0;
+}
+plot-app a {
+  width: auto;
+  height: 40px;
+  padding: 0 15px;
+  display: inline-block;
+  margin: 15px 15px 0 0;
+  position: relative;
+  border: 1px solid #BBBBBB;
+  border-radius: 50px;
+
+  font-size: 15px;
+  line-height: 40px;
+}
+plot-app a .icon {
+  display: block;
+  height: 30px;
+  width: 30px;
+  position: absolute;
+  top: 5px; left: 5px;
+  content: "";
 }
