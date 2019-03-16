@@ -458,6 +458,7 @@ class PlotOutline extends Plot {
     // Extend events
     this.cnv.onmousedown = () => {this.onclick(true)};
     this.cnv.onmouseup = () => {this.onclick(false)};
+    this.cnv.ontouchmove = (e) => {this.ontouchmove(e)};
     // Extend
     this.boxColor = "#DDEAF3";
     this.boxBackgroundColor = "RGBA(221,234,243,0.5)";
@@ -533,6 +534,12 @@ class PlotOutline extends Plot {
     }
     this.show();
     this.onrangechange();
+  }
+
+  ontouchmove(event) {
+    event.preventDefault();
+    this.clicked = true;
+    this.onpointermove(event.touches.item(0));
   }
 
   onclick(clicked) {
