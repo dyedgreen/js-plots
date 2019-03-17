@@ -180,12 +180,12 @@ class Plot extends HTMLElement {
     if (typeof this.ySnap === "number") ySpacing = Math.floor(ySpacing / this.ySnap) * this.ySnap;
     if (this.ySnap === true) {
       // Auto-Snap
-      let s = 10;
+      let s = 1;
       if (yMax > 100000) { s = 10000; }
       else if (yMax > 10000) { s = 1000; }
       else if (yMax > 1000) { s = 100; }
       else if (yMax > 100) { s = 10; }
-      else if (yMax > 10) { s = 0.1; }
+      else if (yMax > 10) { s = 5; }
       ySpacing = Math.floor(ySpacing / s) * s;
       yTicks = Math.floor(yMax / ySpacing);
     }
