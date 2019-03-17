@@ -12,12 +12,9 @@ class Plot extends HTMLElement {
     this.cnv.onmousemove = (e) => window.requestAnimationFrame(() => this.onpointermove(e));
     this.cnv.onmouseenter = () => this.onhover(true);
     this.cnv.onmouseleave = () => this.onhover(false);
-    // Canvas and specific (non-css) style properties
+    // Canvas and style properties
     this.ctx = this.cnv.getContext("2d", {alpha: false});
     this.aspectRatio = 0.8; // Canvas aspect ratio
-    this.decorationColor = "#BBBBBB";
-    this.backgroundColor = "#FFFFFF";
-    this.textColor = "#000000";
     this.lineWidth = 2;
     this.yTicks = 5;
     this.ySnap = true; // Snap ticks to nearest (good) multiple
@@ -26,10 +23,9 @@ class Plot extends HTMLElement {
     this.fontSize = 12;
     this.fontHeight = 20;
     this.axis = true; // Display axis and hover info
+    // Colors
+    this.toggleDarkColors(true);
     // Css value management
-    this.cssValues = window.getComputedStyle(this);
-    this.cssValues.transitionend = () => console.log("test");
-    this.style.transition = ".00001s";
     this.style.display = "block";
     this.style.overflow = "hidden";
     // Load data
@@ -93,13 +89,24 @@ class Plot extends HTMLElement {
     this.show();
   }
 
-  /**
-  * show()
-  *
-  * Updates the render
-  * and does appropriate
-  * caching.
-  */
+  toggleDarkColors(noRedraw) {
+    if (this.backgroundColor === "#FFFFFF") {
+      this.decorationColor = "#546778";
+      this.backgroundColor = "#242F3E";
+      this.boxColor = "#40566B";
+      this.boxBackgroundColor = "RGBA(64,86,107,0.5)";
+      this.textColor = "#FFFFFF";
+    } else {
+      this.decorationColor = "#96A2AA";
+      this.backgroundColor = "#FFFFFF";
+      this.boxColor = "#DDEAF3";
+      this.boxBackgroundColor = "RGBA(221,234,243,0.5)";
+      this.textColor = "#000000";
+    }
+    this.invalidateCache();
+    if (!noRedraw) this.show();
+  }
+
   show() {
     if (!this.restoreCache()) {
       this.render(this.from, this.to, this.axis);
@@ -111,12 +118,6 @@ class Plot extends HTMLElement {
     }
   }
 
-  /**
-  * animate()
-  *
-  * Like show, but with an
-  * animation.
-  */
   animate(step) {
     step = step || 0.1;
     let progress = 0;
@@ -147,14 +148,6 @@ class Plot extends HTMLElement {
     this.show();
   }
 
-  /**
-  * render()
-  *
-  * Draw the basic plot with
-  * optional axis. This is
-  * considered a low-level
-  * operation.
-  */
   render(from, to, axis, animBounds) {
     // Determine layout
     let yMin = axis ? 0 : +Infinity;
@@ -258,16 +251,6 @@ class Plot extends HTMLElement {
     }
   }
 
-  /**
-  * renderHighlight()
-  *
-  * Highlight a specific
-  * data point. This is
-  * considered a low-level
-  * operation. This assumes
-  * the underlying plot was
-  * drawn with axis.
-  */
   renderHighlight(i) {
     // Restore values
     const xMin = this.__cacheXMin__;
@@ -462,9 +445,6 @@ class PlotOutline extends Plot {
     this.cnv.onmousedown = () => {this.onclick(true)};
     this.cnv.onmouseup = () => {this.onclick(false)};
     this.cnv.ontouchmove = (e) => {this.ontouchmove(e)};
-    // Extend
-    this.boxColor = "#DDEAF3";
-    this.boxBackgroundColor = "RGBA(221,234,243,0.5)";
     // Range status
     this.rangeFrom = this.from;
     this.rangeTo = this.to;
@@ -479,13 +459,6 @@ class PlotOutline extends Plot {
     this.onrangechange();
   }
 
-  /**
-  * show()
-  *
-  * Updates the render
-  * and does appropriate
-  * caching.
-  */
   show() {
     if (!this.restoreCache()) {
       this.render(this.from, this.to, this.axis);
@@ -494,12 +467,6 @@ class PlotOutline extends Plot {
     this.renderBox(this.rangeFrom, this.rangeTo);
   }
 
-  /**
-  * animate()
-  *
-  * Like show, but with an
-  * animation.
-  */
   animate(step) {
     step = step || 0.1;
     let progress = 0;
@@ -549,14 +516,6 @@ class PlotOutline extends Plot {
     this.clicked = !!clicked;
   }
 
-  /**
-  * renderBox()
-  *
-  * Highlight box over
-  * from -> to range, as
-  * opposed to previously
-  * rendered graph.
-  */
   renderBox(from, to) {
     // Restore values
     const xMin     = this.__cacheXMin__;
@@ -615,6 +574,7 @@ class PlotApp extends HTMLElement {
       // Setup html
       this.appendChild(this.heroPlot);
       this.appendChild(this.scrollPlot);
+      this.heroPlot.style.marginBottom = "15px";
       // Set up buttons
       this.hiddenCount = 0;
       this.heroPlot.names.forEach((name, i) => {
@@ -634,14 +594,17 @@ class PlotApp extends HTMLElement {
           this.heroPlot.togglePlot(i, true);
           this.scrollPlot.togglePlot(i, true);
           this.hiddenCount += button.classList.contains("checked") ? -1 : +1;
-    // DELME
-    console.log("value:", window.getComputedStyle(this).getPropertyValue("font-size"));
         }
         this.appendChild(button);
       });
       // Send ready event
       this.onready();
     });
+  }
+
+  toggleDarkColors() {
+    this.heroPlot.toggleDarkColors();
+    this.scrollPlot.toggleDarkColors();
   }
 
   static loadJson(path, callback) {
@@ -652,3 +615,13 @@ class PlotApp extends HTMLElement {
 
 }
 customElements.define("plot-app", PlotApp);
+
+
+// Dark Mode Toggle
+let dark = false;
+document.getElementById("dark-colors-button").onclick = () => {
+  dark = !dark;
+  [...document.getElementsByTagName("plot-app")].forEach(e => e.toggleDarkColors());
+  document.getElementsByTagName("body")[0].classList.toggle("dark");
+  document.getElementById("dark-colors-button").innerHTML = dark ? "Switch to Day Mode" : "Switch to Night Mode";
+};

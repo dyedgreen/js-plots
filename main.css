@@ -5,6 +5,10 @@
   box-sizing: border-box;
   font-family: "Roboto", sans-serif;
 }
+body {
+  color: #000;
+  background: #FFF;
+}
 
 /* General layout */
 .content {
@@ -24,8 +28,23 @@
   flex-grow: 1;
 }
 
+/* Components */
 h1 {
   font-size: 22px;
+  font-weight: 500;
+}
+.button {
+  height: 22px;
+  width: 200px; /*a tad hacky*/
+  display: block;
+  margin: 50px auto;
+  font-size: 18px;
+  font-weight: 400;
+  test-decoration: none;
+  text-align: center;
+  line-height: 22px;
+  color: #36A8F1;
+  cursor: pointer;
 }
 
 /* Plots */
@@ -34,9 +53,6 @@ plot-app {
   height: auto;
   display: block;
 }
-plot-app plot-base {
-  margin: 0 0 15px 0;
-}
 plot-app a {
   width: auto;
   height: 40px;
@@ -44,7 +60,7 @@ plot-app a {
   display: inline-block;
   margin: 15px 15px 0 0;
   position: relative;
-  border: 1px solid #BBBBBB;
+  border: 1px solid #BAC9D3;
   border-radius: 50px;
   font-size: 15px;
   line-height: 40px;
@@ -62,4 +78,14 @@ plot-app a .icon {
 }
 plot-app a.checked .icon {
   background-image: url(./check.svg);
+}
+
+/* Dark Colors */
+.dark {
+  color: #FFF;
+  background: #242F3E;
+}
+.dark plot-app a {
+  color: #FFF;
+  border-color: #546778;
 }
