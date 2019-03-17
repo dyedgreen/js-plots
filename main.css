@@ -89,7 +89,7 @@ plot-app a .icon:after {
   height: 24px;
   display: block;
   position: absolute;
-  top: 0; left: 0;
+  top: -2px; left: -2px;
   background-image: url(./check.svg);
   background-position: center;
   opacity: 0;
