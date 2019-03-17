@@ -281,9 +281,9 @@ class Plot extends HTMLElement {
     }
 
     // Measure box
-    const fontTitle = `${this.fontSize * Plot.pixelRatio * 1.2}px 'Roboto', sans-serif`;
-    const fontData = `${this.fontSize * Plot.pixelRatio * 1.5}px 'Roboto', sans-serif`;
-    const fontName = `${this.fontSize * Plot.pixelRatio}px 'Roboto', sans-serif`;
+    const fontTitle = `400 ${this.fontSize * Plot.pixelRatio * 1.2}px 'Roboto', sans-serif`;
+    const fontData = `500 ${this.fontSize * Plot.pixelRatio * 1.5}px 'Roboto', sans-serif`;
+    const fontName = `400 ${this.fontSize * Plot.pixelRatio}px 'Roboto', sans-serif`;
     const padding = 0.4 * this.fontHeight * Plot.pixelRatio;
 
     const title = `${Plot.weekDay(this.x[i])}, ${Plot.monthDay(this.x[i])}`;
@@ -313,9 +313,10 @@ class Plot extends HTMLElement {
     }
 
     // Render box
-    const borderRadius = 3*Plot.pixelRatio;
+    const borderRadius = 6*Plot.pixelRatio;
     this.ctx.fillStyle = this.backgroundColor;
-    this.ctx.shadowBlur = 4;
+    this.ctx.shadowBlur = 6;
+    this.ctx.shadowOffsetY = 1*Plot.pixelRatio;
     this.ctx.shadowColor = "rgba(0,0,0,0.2)";
 
     this.ctx.beginPath();
