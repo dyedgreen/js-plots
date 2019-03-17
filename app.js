@@ -492,7 +492,6 @@ class PlotHighlight extends Plot {
   }
 
   ontouchmove(event) {
-    event.preventDefault();
     this.hovered = true;
     this.onpointermove(event.touches.item(0));
   }
