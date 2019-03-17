@@ -76,11 +76,29 @@ plot-app a .icon {
   width: 24px;
   position: absolute;
   top: 7px; left: 7px;
+  border-width: 2px;
+  border-style: solid;
   border-radius: 100%;
-  content: "";
+  transition: border-width .2s;
 }
 plot-app a.checked .icon {
+  border-width: 12px;
+}
+plot-app a .icon:after {
+  width: 24px;
+  height: 24px;
+  display: block;
+  position: absolute;
+  top: 0; left: 0;
   background-image: url(./check.svg);
+  background-position: center;
+  opacity: 0;
+  content: "";
+  transition: .2s;
+}
+plot-app a.checked .icon:after {
+  top: -12px; left: -12px;
+  opacity: 1;
 }
 
 /* Dark Colors */

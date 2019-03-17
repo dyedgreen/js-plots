@@ -622,7 +622,7 @@ class PlotApp extends HTMLElement {
         let button = document.createElement("a");
         let icon = document.createElement("span");
         icon.classList.add("icon");
-        icon.style.backgroundColor = this.heroPlot.colors[i];
+        icon.style.borderColor = this.heroPlot.colors[i];
         button.appendChild(icon);
         button.classList.add("checked");
         button.innerHTML = button.innerHTML + name;
