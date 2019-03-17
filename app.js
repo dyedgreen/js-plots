@@ -1,5 +1,12 @@
 "use strict";
 
+/**
+* Plot
+*
+* Base class for plots, which
+* draws the plots and complications
+* like outline-boxes and axes.
+*/
 class Plot extends HTMLElement {
 
   constructor(data) {
@@ -9,9 +16,14 @@ class Plot extends HTMLElement {
     this.appendChild(this.cnv);
     window.onresize = Plot.shareEvent(() => window.requestAnimationFrame(() => this.resize()), window.onresize);
     window.requestAnimationFrame(() => this.resize());
+    // Events
     this.cnv.onmousemove = (e) => window.requestAnimationFrame(() => this.onpointermove(e));
+    this.cnv.ontouchmove = (e) => {this.ontouchmove(e)};
     this.cnv.onmouseenter = () => this.onhover(true);
     this.cnv.onmouseleave = () => this.onhover(false);
+    this.cnv.onmousedown = () => {this.onclick(true)};
+    this.cnv.onmouseup = () => {this.onclick(false)};
+    this.onrangechange = () => {};
     // Canvas and style properties
     this.ctx = this.cnv.getContext("2d", {alpha: false});
     this.aspectRatio = 0.8; // Canvas aspect ratio
@@ -47,7 +59,8 @@ class Plot extends HTMLElement {
     this.hiddenPlots = {};
     this.from = 0;
     this.to = this.x.length - 1;
-    this.hovered = false;
+    this.rangeFrom = this.from;
+    this.rangeTo = this.to;
     // Caches
     this.cacheFull = null;
     this.cacheFullW = 0;
@@ -55,6 +68,14 @@ class Plot extends HTMLElement {
     this.cacheFullFrom = this.from;
     this.cacheFullTo = this.to;
   }
+
+  /**
+  * Events
+  */
+  onpointermove() {}
+  ontouchmove() {}
+  onhover(enter) {}
+  onclick(down) {}
 
   togglePlot(index, animate) {
     this.hiddenPlots[this.names[index]] = !this.hiddenPlots[this.names[index]];
@@ -76,6 +97,13 @@ class Plot extends HTMLElement {
       this.invalidateCache();
       this.show();
     }
+  }
+
+  setRange(from, to) {
+    this.rangeFrom = from;
+    this.rangeTo = to;
+    this.show();
+    this.onrangechange();
   }
 
   resize() {
@@ -105,47 +133,6 @@ class Plot extends HTMLElement {
     }
     this.invalidateCache();
     if (!noRedraw) this.show();
-  }
-
-  show() {
-    if (!this.restoreCache()) {
-      this.render(this.from, this.to, this.axis);
-      this.setCache();
-    }
-    // Render highlight if hovered
-    if (this.hovered && this.axis) {
-      this.renderHighlight(this.hoverIndex);
-    }
-  }
-
-  animate(step) {
-    step = step || 0.1;
-    let progress = 0;
-    let closure = () => {
-      if (progress < 1) {
-        this.render(this.from, this.to, this.axis, progress);
-        progress += 0.1;
-        window.requestAnimationFrame(closure);
-      } else {
-        this.invalidateCache();
-        this.show();
-      }
-    };
-    window.requestAnimationFrame(closure);
-  }
-
-  onpointermove(event) {
-    if (!this.axis) return;
-    // Determine highlight point
-    this.hoverIndex = (event.clientX - this.cnv.getBoundingClientRect().left) / this.cnv.offsetWidth;
-    this.hoverIndex = Math.floor(this.hoverIndex * (this.to-this.from) + this.from);
-    this.show();
-  }
-
-  onhover(hovered) {
-    if (!this.axis) return;
-    this.hovered = !!hovered;
-    this.show();
   }
 
   render(from, to, axis, animBounds) {
@@ -363,6 +350,38 @@ class Plot extends HTMLElement {
     }
   }
 
+  renderBox(from, to) {
+    // Restore values
+    const xMin     = this.__cacheXMin__;
+    const xMax     = this.__cacheXMax__;
+    const yMin     = this.__cacheYMin__;
+    const yMax     = this.__cacheYMax__;
+    const fromPrev = this.__cacheFrom__;
+    const toPrev   = this.__cacheTo__;
+
+    if (from < fromPrev || to > toPrev) throw "Index error";
+
+    const xScale = (this.cnv.width) / (xMax - xMin);
+    const handleWidth = 6 * Plot.pixelRatio;
+    const borderWidth = 2 * Plot.pixelRatio;
+
+    // Render background
+    this.ctx.fillStyle = this.boxBackgroundColor;
+    this.ctx.beginPath();
+    this.ctx.rect(0, 0, (this.x[from]-xMin)*xScale, this.cnv.height);
+    this.ctx.rect((this.x[to]-xMin)*xScale, 0, this.cnv.width, this.cnv.height);
+    this.ctx.fill();
+
+    // Render box
+    this.ctx.fillStyle = this.boxColor;
+    this.ctx.beginPath();
+    this.ctx.rect((this.x[from]-xMin)*xScale - handleWidth/2, 0, handleWidth, this.cnv.height);
+    this.ctx.rect((this.x[to]-xMin)*xScale - handleWidth/2, 0, handleWidth, this.cnv.height);
+    this.ctx.rect((this.x[from]-xMin)*xScale, 0, (this.x[to]-this.x[from])*xScale, borderWidth);
+    this.ctx.rect((this.x[from]-xMin)*xScale, this.cnv.height-borderWidth, (this.x[to]-this.x[from])*xScale, borderWidth);
+    this.ctx.fill();
+  }
+
   setCache() {
     this.cacheFull = this.ctx.getImageData(0, 0, this.cnv.width, this.cnv.height);
     this.cacheFullW = this.cnv.width;
@@ -399,15 +418,6 @@ class Plot extends HTMLElement {
     return `${m[d.getMonth()]} ${d.getDate()}`;
   }
 
-  static debounce(fn, interval) {
-    interval = interval || 10;
-    let timeout = undefined;
-    return (...args) => {
-      clearTimeout(timeout);
-      timeout = setTimeout(() => fn(...args), interval);
-    };
-  }
-
   static shareEvent(fn, prev) {
     if (typeof prev === "function") {
       return () => {prev();fn();};
@@ -432,31 +442,84 @@ class Plot extends HTMLElement {
 }
 customElements.define("plot-base", Plot);
 
-
-class PlotOutline extends Plot {
+/**
+* PlotHighlight
+*
+* Plot which reacts to mouse-over
+* events to display data for the
+* hovered point.
+*/
+class PlotHighlight extends Plot {
 
   constructor(data) {
     super(data);
-    // Override default behavior
+  }
+
+  show() {
+    if (!this.restoreCache()) {
+      this.render(this.from, this.to, this.axis);
+      this.setCache();
+    }
+    // Render highlight if hovered
+    if (this.hovered && this.axis) {
+      this.renderHighlight(this.hoverIndex);
+    }
+  }
+
+  animate(step) {
+    step = step || 0.1;
+    let progress = 0;
+    let closure = () => {
+      if (progress < 1) {
+        this.render(this.from, this.to, this.axis, progress);
+        progress += 0.1;
+        window.requestAnimationFrame(closure);
+      } else {
+        this.invalidateCache();
+        this.show();
+      }
+    };
+    window.requestAnimationFrame(closure);
+  }
+
+  onpointermove(event) {
+    if (!this.axis) return;
+    // Determine highlight point
+    this.hoverIndex = (event.clientX - this.cnv.getBoundingClientRect().left) / this.cnv.offsetWidth;
+    this.hoverIndex = Math.floor(this.hoverIndex * (this.to-this.from) + this.from);
+    this.show();
+  }
+
+  ontouchmove(event) {
+    event.preventDefault();
+    this.hovered = true;
+    this.onpointermove(event.touches.item(0));
+  }
+
+  onhover(hovered) {
+    if (!this.axis) return;
+    this.hovered = !!hovered;
+    this.show();
+  }
+
+}
+customElements.define("plot-highlight", PlotHighlight);
+
+/**
+* PlotBox
+*
+* Plot displays a selected range
+* that can be adjusted.
+*/
+class PlotBox extends Plot {
+
+  constructor(data) {
+    super(data);
+    // Override defaults
     this.axis = false;
     this.fontHeight = 5;
     this.aspectRatio = 0.12;
-    // Extend events
-    this.cnv.onmousedown = () => {this.onclick(true)};
-    this.cnv.onmouseup = () => {this.onclick(false)};
-    this.cnv.ontouchmove = (e) => {this.ontouchmove(e)};
-    // Range status
-    this.rangeFrom = this.from;
-    this.rangeTo = this.to;
-    // Callbacks
-    this.onrangechange = () => {}; // Called when selected range changes
-  }
-
-  setRange(from, to) {
-    this.rangeFrom = from;
-    this.rangeTo = to;
-    this.show();
-    this.onrangechange();
+    this.lineWidth = 1;
   }
 
   show() {
@@ -516,42 +579,20 @@ class PlotOutline extends Plot {
     this.clicked = !!clicked;
   }
 
-  renderBox(from, to) {
-    // Restore values
-    const xMin     = this.__cacheXMin__;
-    const xMax     = this.__cacheXMax__;
-    const yMin     = this.__cacheYMin__;
-    const yMax     = this.__cacheYMax__;
-    const fromPrev = this.__cacheFrom__;
-    const toPrev   = this.__cacheTo__;
-
-    if (from < fromPrev || to > toPrev) throw "Index error";
-
-    const xScale = (this.cnv.width) / (xMax - xMin);
-    const handleWidth = 6 * Plot.pixelRatio;
-    const borderWidth = 2 * Plot.pixelRatio;
-
-    // Render background
-    this.ctx.fillStyle = this.boxBackgroundColor;
-    this.ctx.beginPath();
-    this.ctx.rect(0, 0, (this.x[from]-xMin)*xScale, this.cnv.height);
-    this.ctx.rect((this.x[to]-xMin)*xScale, 0, this.cnv.width, this.cnv.height);
-    this.ctx.fill();
-
-    // Render box
-    this.ctx.fillStyle = this.boxColor;
-    this.ctx.beginPath();
-    this.ctx.rect((this.x[from]-xMin)*xScale - handleWidth/2, 0, handleWidth, this.cnv.height);
-    this.ctx.rect((this.x[to]-xMin)*xScale - handleWidth/2, 0, handleWidth, this.cnv.height);
-    this.ctx.rect((this.x[from]-xMin)*xScale, 0, (this.x[to]-this.x[from])*xScale, borderWidth);
-    this.ctx.rect((this.x[from]-xMin)*xScale, this.cnv.height-borderWidth, (this.x[to]-this.x[from])*xScale, borderWidth);
-    this.ctx.fill();
+  onhover(enter) {
+    if (!enter) this.clicked = false;
   }
 
 }
-customElements.define("plot-outline", PlotOutline);
+customElements.define("plot-box", PlotBox)
 
-
+/**
+* PlotApp
+*
+* Custom html element, which
+* implements the plots shown
+* in the challenge designs.
+*/
 class PlotApp extends HTMLElement {
 
   constructor() {
@@ -561,15 +602,15 @@ class PlotApp extends HTMLElement {
     // Load data
     PlotApp.loadJson(this.dataset.json, charts => {
       // Plots
-      this.heroPlot = new Plot(charts[+this.dataset.chart]);
-      this.scrollPlot = new PlotOutline(charts[+this.dataset.chart]);
+      this.heroPlot = new PlotHighlight(charts[+this.dataset.chart]);
+      this.scrollPlot = new PlotBox(charts[+this.dataset.chart]);
       this.scrollPlot.onrangechange = () => {
         this.heroPlot.setFromTo(this.scrollPlot.rangeFrom, this.scrollPlot.rangeTo);
       };
       // Set nice starting range
       this.scrollPlot.setRange(
-        Math.max(0, this.scrollPlot.x.length-41),
-        Math.min(this.scrollPlot.x.length, this.scrollPlot.x.length-11)
+        Math.max(0, this.scrollPlot.x.length-31),
+        Math.min(this.scrollPlot.x.length, this.scrollPlot.x.length-1)
       );
       // Setup html
       this.appendChild(this.heroPlot);

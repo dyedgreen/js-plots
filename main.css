@@ -31,11 +31,11 @@ body {
 /* Components */
 h1 {
   font-size: 22px;
-  font-weight: 500;
+  font-weight: 600;
 }
 .button {
   height: 22px;
-  width: 200px; /*a tad hacky*/
+  width: 200px; /* a tad hacky */
   display: block;
   margin: 50px auto;
   font-size: 18px;
