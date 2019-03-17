@@ -12,7 +12,7 @@ class Plot extends HTMLElement {
     this.cnv.onmousemove = (e) => window.requestAnimationFrame(() => this.onpointermove(e));
     this.cnv.onmouseenter = () => this.onhover(true);
     this.cnv.onmouseleave = () => this.onhover(false);
-    // Canvas and style
+    // Canvas and specific (non-css) style properties
     this.ctx = this.cnv.getContext("2d", {alpha: false});
     this.aspectRatio = 0.8; // Canvas aspect ratio
     this.decorationColor = "#BBBBBB";
@@ -26,7 +26,10 @@ class Plot extends HTMLElement {
     this.fontSize = 12;
     this.fontHeight = 20;
     this.axis = true; // Display axis and hover info
-    // Default css
+    // Css value management
+    this.cssValues = window.getComputedStyle(this);
+    this.cssValues.transitionend = () => console.log("test");
+    this.style.transition = ".00001s";
     this.style.display = "block";
     this.style.overflow = "hidden";
     // Load data
@@ -522,9 +525,9 @@ class PlotOutline extends Plot {
     // Determine if handle, drag, or none (and update)
     const hitWidth = Math.ceil(this.x.length / 20);
     if (Math.abs(hover-this.rangeFrom) < hitWidth) {
-      this.rangeFrom = Math.min(hover, this.rangeTo-hitWidth);
+      this.rangeFrom = Math.max(0, Math.min(hover, this.rangeTo-hitWidth));
     } else if (Math.abs(hover-this.rangeTo) < hitWidth) {
-      this.rangeTo = hover;
+      this.rangeTo = Math.min(this.x.length-1,hover);
     } else if (hover > this.rangeFrom && hover < this.rangeTo) {
       const w = Math.floor((this.rangeTo - this.rangeFrom) / 2);
       this.rangeFrom = Math.max(0, hover - w);
@@ -579,8 +582,8 @@ class PlotOutline extends Plot {
     // Render box
     this.ctx.fillStyle = this.boxColor;
     this.ctx.beginPath();
-    this.ctx.rect((this.x[from]-xMin)*xScale - handleWidth, 0, handleWidth, this.cnv.height);
-    this.ctx.rect((this.x[to]-xMin)*xScale, 0, handleWidth, this.cnv.height);
+    this.ctx.rect((this.x[from]-xMin)*xScale - handleWidth/2, 0, handleWidth, this.cnv.height);
+    this.ctx.rect((this.x[to]-xMin)*xScale - handleWidth/2, 0, handleWidth, this.cnv.height);
     this.ctx.rect((this.x[from]-xMin)*xScale, 0, (this.x[to]-this.x[from])*xScale, borderWidth);
     this.ctx.rect((this.x[from]-xMin)*xScale, this.cnv.height-borderWidth, (this.x[to]-this.x[from])*xScale, borderWidth);
     this.ctx.fill();
@@ -631,6 +634,8 @@ class PlotApp extends HTMLElement {
           this.heroPlot.togglePlot(i, true);
           this.scrollPlot.togglePlot(i, true);
           this.hiddenCount += button.classList.contains("checked") ? -1 : +1;
+    // DELME
+    console.log("value:", window.getComputedStyle(this).getPropertyValue("font-size"));
         }
         this.appendChild(button);
       });
