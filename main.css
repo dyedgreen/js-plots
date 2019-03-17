@@ -53,6 +53,9 @@ plot-app {
   height: auto;
   display: block;
 }
+plot-app canvas {
+  -webkit-tap-highlight-color: rgba(0,0,0,0);
+}
 plot-app a {
   width: auto;
   height: 40px;
