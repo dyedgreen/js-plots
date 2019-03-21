@@ -173,6 +173,7 @@ class Plot extends HTMLElement {
     let   ySpacing = (yMax - yMin) / this.yTicks; // in y-units
     let   yTicks = this.yTicks;
     const xSpacing = (xMax - xMin) / this.xTicks; // in x-units
+    const xTickStart = xMin - (xMin % xSpacing);
     const yScale = (this.cnv.height-2*offset) / (yMax - yMin);
     const xScale = (this.cnv.width) / (xMax - xMin);
 
@@ -209,10 +210,11 @@ class Plot extends HTMLElement {
       }
       this.ctx.stroke();
 
-      for (let i = 0; i < this.xTicks; i ++) {
+      for (let i = 0; i <= this.xTicks; i ++) {
+        const tmp = xSpacing*i + xTickStart;
         this.ctx.fillText(
-          `${Plot.monthDay(Math.floor(xSpacing*i + xMin))}`,
-          xScale*xSpacing*i,
+          `${Plot.monthDay(Math.floor(tmp))}`,
+          xScale*(tmp - xMin),
           this.cnv.height - fontOffset
         );
       }
